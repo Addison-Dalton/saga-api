@@ -6,6 +6,7 @@ import (
 
 	"github.com/Addison-Dalton/saga-api/internal/config"
 	"github.com/Addison-Dalton/saga-api/internal/server"
+	"github.com/Addison-Dalton/saga-api/internal/storage"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -18,6 +19,11 @@ func main() {
 	// environment variable loading
 	config.Load()
 	geminiAPIKey := config.Get("GEMINI_API_KEY")
+	dbConnectionString := config.Get("DATABASE_URL")
+
+	// database initialization
+	db, _ := storage.NewConnection(dbConnectionString)
+	storage.AutoMigrate(db.DB)
 
 	// gemini client initialization
 	ctx := context.Background()
@@ -29,7 +35,7 @@ func main() {
 
 	geminiModel := client.GenerativeModel("gemini-1.5-flash-latest")
 
-	srv := server.NewServer(geminiModel)
+	srv := server.NewServer(geminiModel, db)
 	log.Printf("Starting server on %s", ":8080")
 	if err := srv.Start(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

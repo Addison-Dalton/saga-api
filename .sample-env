@@ -1,1 +1,2 @@
 GEMINI_API_KEY=
+DATABASE_URL="host=localhost port=3432 user=postgres password= dbnname=saga_api sslmode=disable
