@@ -47,4 +47,13 @@ func (db *Database) GetAllCharacters() ([]Character, error) {
 	return characters, err
 }
 
-// TODO CharacterByID, UpdateCharacter, DeleteCharacter methods
+func (db *Database) GetCharacterByID(id uint) (*Character, error) {
+	var character Character
+	err := db.First(&character, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &character, nil
+}
+
+// TODO UpdateCharacter, DeleteCharacter methods

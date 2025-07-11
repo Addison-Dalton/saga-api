@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/Addison-Dalton/saga-api/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -71,4 +72,25 @@ func (s *Server) GetAllCharactersHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, characters)
 }
 
-// TODO CharacterByID, UpdateCharacter, DeleteCharacter handlers
+func (s *Server) GetCharacterByIDHandler(c *gin.Context) {
+	idStr := c.Param("id")
+
+	// Step 2: Convert the 'id' to uint
+	id, err := strconv.ParseUint(idStr, 10, 32) // Convert to uint32
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	character, dbErr := s.db.GetCharacterByID(uint(id))
+
+	if dbErr != nil {
+		log.Printf("Error retrieving character with ID %d: %v", id, dbErr)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve character"})
+		return
+	}
+
+	c.JSON(http.StatusOK, character)
+}
+
+// TODO UpdateCharacter, DeleteCharacter handlers

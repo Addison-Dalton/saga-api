@@ -30,6 +30,7 @@ func NewServer(genaiClient *genai.GenerativeModel, db *storage.Database) *Server
 		{
 			characters.POST("/", s.CreateCharacterHandler)
 			characters.GET("/", s.GetAllCharactersHandler)
+			characters.GET("/:id", s.GetCharacterByIDHandler)
 			// TODO Get by ID, Update, Delete
 		}
 	}
