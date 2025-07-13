@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
 	"log"
 
 	"github.com/Addison-Dalton/saga-api/internal/config"
+	"github.com/Addison-Dalton/saga-api/internal/game"
+	"github.com/Addison-Dalton/saga-api/internal/llm"
 	"github.com/Addison-Dalton/saga-api/internal/server"
 	"github.com/Addison-Dalton/saga-api/internal/storage"
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
 )
 
 type Prompt struct {
@@ -18,7 +17,7 @@ type Prompt struct {
 func main() {
 	// environment variable loading
 	config.Load()
-	geminiAPIKey := config.Get("GEMINI_API_KEY")
+	modelName := config.Get("GEMINI_MODEL")
 	dbConnectionString := config.Get("DATABASE_URL")
 
 	// database initialization
@@ -26,16 +25,19 @@ func main() {
 	storage.AutoMigrate(db.DB)
 
 	// gemini client initialization
-	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(geminiAPIKey))
+	client, err := llm.InitializeGenAIClient()
 	if err != nil {
 		log.Fatalf("Failed to create Gemini client: %v", err)
 	}
 	defer client.Close()
 
-	geminiModel := client.GenerativeModel("gemini-1.5-flash-latest")
+	model := client.GenerativeModel(modelName)
 
-	srv := server.NewServer(geminiModel, db)
+	// game service initialization
+	gameService := game.NewService(db, model)
+
+	// TODO - likely can remove passing the model to the server, as it can be accessed via the game service
+	srv := server.NewServer(model, db, gameService)
 	log.Printf("Starting server on %s", ":8080")
 	if err := srv.Start(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)

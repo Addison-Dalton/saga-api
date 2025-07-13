@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"log"
 
 	"gorm.io/driver/postgres"
@@ -10,6 +11,8 @@ import (
 type Database struct {
 	*gorm.DB
 }
+
+var ErrDatabaseNotInitialized = errors.New("database not initialized")
 
 func NewConnection(dsn string) (*Database, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
