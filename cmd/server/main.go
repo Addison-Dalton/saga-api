@@ -36,8 +36,7 @@ func main() {
 	// game service initialization
 	gameService := game.NewService(db, model)
 
-	// TODO - likely can remove passing the model to the server, as it can be accessed via the game service
-	srv := server.NewServer(model, db, gameService)
+	srv := server.NewServer(db, gameService)
 	log.Printf("Starting server on %s", ":8080")
 	if err := srv.Start(":8080"); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
