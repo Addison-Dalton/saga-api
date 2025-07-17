@@ -1,20 +1,20 @@
 package game
 
 import (
+	"github.com/Addison-Dalton/saga-api/internal/llm"
 	"github.com/Addison-Dalton/saga-api/internal/storage"
-	"github.com/google/generative-ai-go/genai"
 )
 
 type Service struct {
 	DB            *storage.Database
-	genaiModel    *genai.GenerativeModel
+	llm           *llm.Service
 	activeSession *Session
 }
 
-func NewService(db *storage.Database, genaiModel *genai.GenerativeModel) *Service {
+func NewService(db *storage.Database, llm *llm.Service) *Service {
 	return &Service{
 		DB:            db,
-		genaiModel:    genaiModel,
+		llm:           llm,
 		activeSession: nil, // No active session at initialization
 	}
 }

@@ -39,6 +39,27 @@ func (s *Server) SessionStartHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, storyTurn)
 }
 
+func (s *Server) SessionInteractHandler(c *gin.Context) {
+	var req struct {
+		Choice string `json:"choice"`
+	}
+
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	storyTurn, err := s.gameService.Interact(req.Choice)
+
+	if err != nil {
+		log.Printf("Error interacting with game session: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to interact with game session", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, storyTurn)
+}
+
 // --- MODEL HANDLERS ---
 // Character handlers
 func (s *Server) CreateCharacterHandler(c *gin.Context) {

@@ -1,30 +1,17 @@
 package game
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/Addison-Dalton/saga-api/internal/llm"
+	"github.com/Addison-Dalton/saga-api/internal/shared"
 	"github.com/Addison-Dalton/saga-api/internal/storage"
-
-	"github.com/google/generative-ai-go/genai"
 )
 
 type Session struct {
 	Character        storage.Character
 	NarrativeSummary string
-}
-
-type Choice struct {
-	Text string `json:"text"`
-}
-
-type StoryTurn struct {
-	NarrativeText string   `json:"narrative_text"`
-	Choices       []Choice `json:"choices"`
 }
 
 var ErrNoActiveSession = errors.New("no active game session")
@@ -51,49 +38,46 @@ func (s *Service) NewSession(characterID uint) error {
 	return nil
 }
 
-func (s *Service) CreateNewStory() (*StoryTurn, error) {
+func (s *Service) CreateNewStory() (*shared.StoryTurn, error) {
 	// validate that there is an active session
 	if s.activeSession == nil {
 		return nil, ErrNoActiveSession
 	}
 
 	// Generate a new story prompt using the character's details
-	newStoryPrompt := llm.GetStartAdventurePrompt(s.activeSession.Character.Name)
+	newStoryPrompt := llm.StartAdventurePrompt(s.activeSession.Character.Name)
 
-	modelWithTools := s.genaiModel
-	modelWithTools.Tools = []*genai.Tool{
-		{
-			FunctionDeclarations: []*genai.FunctionDeclaration{llm.SubmitChoicesFunc},
-		},
-	}
-
-	resp, err := modelWithTools.GenerateContent(
-		context.Background(),
-		genai.Text(llm.Prompt([]string{newStoryPrompt})),
-	)
+	storyTurn, err := s.llm.GenerateStoryTurn(newStoryPrompt)
 
 	if err != nil {
-		return nil, fmt.Errorf("error generating content: %w", err)
+		log.Printf("Error generating story turn: %v", err)
+		return nil, err
 	}
 
-	if resp != nil && len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		part := resp.Candidates[0].Content.Parts[0]
+	// Update the session's narrative summary with the new story turn
+	s.activeSession.NarrativeSummary = storyTurn.NarrativeSummary
 
-		if fc, ok := part.(genai.FunctionCall); ok && fc.Name == "submit_choices_and_story" {
+	return storyTurn, nil
+}
 
-			var turnData StoryTurn
-
-			argsBytes, _ := json.Marshal(fc.Args)
-			if err := json.Unmarshal(argsBytes, &turnData); err == nil {
-				return &StoryTurn{
-					NarrativeText: turnData.NarrativeText,
-					Choices:       turnData.Choices,
-				}, nil
-			} else {
-				log.Printf("Failed to unmarshal function call args: %v", err)
-			}
-		}
+func (s *Service) Interact(choice string) (*shared.StoryTurn, error) {
+	// validate that there is an active session
+	if s.activeSession == nil {
+		return nil, ErrNoActiveSession
 	}
 
-	return nil, fmt.Errorf("LLM did not return a valid function call")
+	// Prepare the interaction prompt
+	interactionPrompt := llm.InteractPrompt(s.activeSession.Character.Name, s.activeSession.NarrativeSummary, choice)
+
+	storyTurn, err := s.llm.GenerateStoryTurn(interactionPrompt)
+
+	if err != nil {
+		log.Printf("Error generating story turn: %v", err)
+		return nil, err
+	}
+
+	// Update the session's narrative summary with the new story turn
+	s.activeSession.NarrativeSummary = storyTurn.NarrativeSummary
+
+	return storyTurn, nil
 }

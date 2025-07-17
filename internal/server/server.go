@@ -35,7 +35,7 @@ func NewServer(db *storage.Database, gameService *game.Service) *Server {
 		gameRoutes := api.Group("/game")
 		{
 			gameRoutes.POST("/start", s.SessionStartHandler)
-			// gameRoutes.POST("/interact", s.GamePromptHandler)
+			gameRoutes.POST("/interact", s.SessionInteractHandler)
 		}
 	}
 

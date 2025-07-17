@@ -33,8 +33,11 @@ func main() {
 
 	model := client.GenerativeModel(modelName)
 
+	// llm service initialization
+	llmService := llm.NewService(model)
+
 	// game service initialization
-	gameService := game.NewService(db, model)
+	gameService := game.NewService(db, llmService)
 
 	srv := server.NewServer(db, gameService)
 	log.Printf("Starting server on %s", ":8080")
